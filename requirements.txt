@@ -1,0 +1,26 @@
+# Fiskor ERP - Dependencias del Backend (Python 3.13)
+# Core del servidor web y base de datos local
+Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
+Flask-CORS==5.0.0
+Flask-JWT-Extended==4.7.1
+SQLAlchemy==2.0.36
+
+# Conexion con Supabase (solo para el login y los usuarios)
+psycopg2-binary==2.9.10
+
+# Exportacion de planillas y documentos
+pandas==2.2.3
+openpyxl==3.1.5
+python-docx==1.1.2
+
+# Consulta de la tasa del BCV
+requests==2.32.3
+
+# Servidor de produccion robusto
+waitress==3.0.2
+gunicorn==23.0.0
+
+# Utilidades
+python-dotenv==1.0.1
+Werkzeug==3.1.3

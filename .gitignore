@@ -1,0 +1,27 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Variables de entorno (no subir credenciales)
+.env
+
+# Datos en tiempo de ejecucion
+instancia/
+logs/
+respaldos/
+exportados/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Base de datos SQLite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# Sistema operativo
+.DS_Store
