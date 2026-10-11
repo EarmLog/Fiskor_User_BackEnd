@@ -5,7 +5,8 @@
 # ============================================================
 from app.models.base import ModeloBase
 from app.models.empresa import Empresa, ParametroSistema
-from app.models.seguridad import Auditoria, UsuarioCache
+from app.models.documentos import PlantillaDocumento
+from app.models.seguridad import Auditoria, SolicitudRegistro, TokenRecuperacion, UsuarioCache
 from app.models.tasa import TasaCambio
 from app.models.inventario import Almacen, Categoria, MovimientoInventario, Producto
 from app.models.terceros import Cliente, Proveedor
@@ -25,14 +26,17 @@ from app.models.nomina import (
     NominaDetalle,
     NominaProcesada,
 )
-from app.models.fiscal import Retencion
+from app.models.fiscal import LogImpresionFiscal, Retencion
 from app.models.respaldo import Respaldo
 
 __all__ = [
     "ModeloBase",
     "Empresa",
     "ParametroSistema",
+    "PlantillaDocumento",
     "UsuarioCache",
+    "SolicitudRegistro",
+    "TokenRecuperacion",
     "Auditoria",
     "TasaCambio",
     "Almacen",
@@ -59,5 +63,6 @@ __all__ = [
     "NominaProcesada",
     "NominaDetalle",
     "Retencion",
+    "LogImpresionFiscal",
     "Respaldo",
 ]

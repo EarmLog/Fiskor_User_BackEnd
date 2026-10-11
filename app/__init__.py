@@ -26,6 +26,10 @@ def _preparar_carpetas() -> None:
         Configuracion.RUTA_RESPALDOS,
         Configuracion.RUTA_LOGS,
         Configuracion.RUTA_EXPORTADOS,
+        # Imagenes corporativas (logo, sello, firma).
+        Configuracion.RUTA_UPLOADS / "logos",
+        Configuracion.RUTA_UPLOADS / "sellos",
+        Configuracion.RUTA_UPLOADS / "firmas",
     ):
         ruta.mkdir(parents=True, exist_ok=True)
 
@@ -149,6 +153,15 @@ def crear_aplicacion() -> Flask:
 
     with app.app_context():
         db.create_all()
+
+    # Agregamos columnas nuevas a tablas que ya existian (SQLite).
+    try:
+        from app.migraciones import aplicar_migraciones_ligeras
+
+        with app.app_context():
+            aplicar_migraciones_ligeras()
+    except Exception as exc:  # pragma: no cover
+        app.logger.warning("No se pudieron aplicar migraciones ligeras: %s", exc)
 
     _activar_wal(app)
     _registrar_callbacks_jwt()

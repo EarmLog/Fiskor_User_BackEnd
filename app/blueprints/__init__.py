@@ -4,6 +4,8 @@
 from app.blueprints.auth import auth_bp
 from app.blueprints.clientes import clientes_bp
 from app.blueprints.compras import compras_bp
+from app.blueprints.descargas import descargas_bp
+from app.blueprints.documentos import documentos_bp
 from app.blueprints.empresa import empresa_bp
 from app.blueprints.fiscal import fiscal_bp
 from app.blueprints.inventario import inventario_bp
@@ -32,7 +34,9 @@ def registrar_blueprints(app) -> None:
         tesoreria_bp,
         nomina_bp,
         fiscal_bp,
+        documentos_bp,
         reportes_bp,
+        descargas_bp,
         auditoria_bp,
     ]
     for blue_print in blueprints:

@@ -13,6 +13,13 @@ psycopg2-binary==2.9.10
 pandas==2.2.3
 openpyxl==3.1.5
 python-docx==1.1.2
+# Generacion de facturas y reportes en PDF (con logos y sellos)
+reportlab==4.2.5
+# Imagenes: requerido por reportlab para leer PNG/JPG
+pillow==11.0.0
+
+# Capa fiscal: conexion con impresoras fiscales por puerto serie/USB
+pyserial==3.5
 
 # Consulta de la tasa del BCV
 requests==2.32.3

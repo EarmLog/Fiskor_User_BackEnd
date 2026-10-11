@@ -40,3 +40,29 @@ class Retencion(ModeloBase):
 
     estado = db.Column(db.String(20), default="emitida")  # emitida/anulada
     usuario = db.Column(db.String(150), default="")
+
+
+class LogImpresionFiscal(ModeloBase):
+    """Bitacora de cada intento de impresion en la impresora fiscal.
+
+    Guardamos la trama enviada, el puerto usado y el resultado. Esto
+    sirve de respaldo legal: deja constancia de que se intento emitir
+    el documento fiscal y que respondio la impresora (SENIAT).
+    """
+
+    __tablename__ = "log_impresion_fiscal"
+
+    id = db.Column(db.Integer, primary_key=True)
+    empresa_id = db.Column(db.Integer, db.ForeignKey("empresas.id"), nullable=True)
+    venta_id = db.Column(db.Integer, db.ForeignKey("ventas.id"), nullable=True)
+
+    # Tipo de operacion fiscal: venta / nota_credito / reporte_z / reporte_x
+    operacion = db.Column(db.String(30), default="venta")
+    puerto = db.Column(db.String(60), default="")
+    protocolo = db.Column(db.String(30), default="HKA")
+    trama = db.Column(db.Text, default="")
+    respuesta = db.Column(db.Text, default="")
+    exito = db.Column(db.Boolean, default=False)
+    simulado = db.Column(db.Boolean, default=False)
+    mensaje = db.Column(db.String(255), default="")
+    usuario = db.Column(db.String(150), default="")

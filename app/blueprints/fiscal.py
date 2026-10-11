@@ -209,3 +209,55 @@ def calendario():
     """Calendario fiscal del contribuyente para un anio."""
     anio = request.args.get("anio", default=date.today().year, type=int)
     return exito(generar_calendario_fiscal(anio), "Calendario fiscal")
+
+
+# ------------------------------------------------------------
+# Impresora fiscal (SENIAT): HKA / puerto serie-USB
+# ------------------------------------------------------------
+@fiscal_bp.route("/impresora/estado", methods=["GET"])
+@requiere_sesion
+def estado_impresora():
+    """Devuelve la configuracion y estado de la impresora fiscal."""
+    from app.services import impresora_fiscal_service
+
+    return exito(impresora_fiscal_service.estado_impresora(), "Estado de la impresora fiscal")
+
+
+@fiscal_bp.route("/impresora/reporte-x", methods=["POST"])
+@requiere_sesion
+def reporte_x():
+    """Emite el reporte X (lectura parcial de la impresora fiscal)."""
+    from app.services import impresora_fiscal_service
+
+    resultado = impresora_fiscal_service.reporte_x(usuario=usuario_actual()["email"])
+    if not resultado.get("exito"):
+        return error("No se pudo emitir el reporte X", 502, resultado)
+    registrar("crear", "fiscal", "impresora", None, "Reporte X",
+              usuario=usuario_actual()["email"], ip=request.remote_addr)
+    return exito(resultado, "Reporte X emitido")
+
+
+@fiscal_bp.route("/impresora/reporte-z", methods=["POST"])
+@requiere_sesion
+def reporte_z():
+    """Emite el reporte Z (cierre fiscal del dia)."""
+    from app.services import impresora_fiscal_service
+
+    resultado = impresora_fiscal_service.reporte_z(usuario=usuario_actual()["email"])
+    if not resultado.get("exito"):
+        return error("No se pudo emitir el reporte Z", 502, resultado)
+    registrar("crear", "fiscal", "impresora", None, "Reporte Z",
+              usuario=usuario_actual()["email"], ip=request.remote_addr)
+    return exito(resultado, "Reporte Z emitido")
+
+
+@fiscal_bp.route("/impresora/abrir-cajon", methods=["POST"])
+@requiere_sesion
+def abrir_cajon():
+    """Abre el cajon de dinero conectado a la impresora fiscal."""
+    from app.services import impresora_fiscal_service
+
+    resultado = impresora_fiscal_service.abrir_cajon(usuario=usuario_actual()["email"])
+    if not resultado.get("exito"):
+        return error("No se pudo abrir el cajon", 502, resultado)
+    return exito(resultado, "Cajon abierto")

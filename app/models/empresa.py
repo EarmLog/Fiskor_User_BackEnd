@@ -31,10 +31,30 @@ class Empresa(ModeloBase):
     porcentaje_igtf = db.Column(db.Float, default=3.0)
     serial_onat = db.Column(db.String(60), default="")
 
+    # Imagen corporativa e identidad de los documentos.
+    # Se guardan rutas RELATIVAS dentro de app/static/uploads.
+    logo_ruta = db.Column(db.String(255), default="")
+    sello_ruta = db.Column(db.String(255), default="")
+    firma_ruta = db.Column(db.String(255), default="")
+    firma_nombre = db.Column(db.String(120), default="")
+    firma_cargo = db.Column(db.String(120), default="")
+    color_marca = db.Column(db.String(10), default="#1d4ed8")
+    # Texto libre que se imprime al pie de la factura/nota de entrega.
+    pie_documento = db.Column(db.Text, default="")
+
     activa = db.Column(db.Boolean, default=True)
 
+    def sello_activo(self) -> bool:
+        """Indica si la empresa tiene configurada una imagen de sello."""
+        return bool(self.sello_ruta)
+
     def a_diccionario(self, excluir: tuple = ()) -> dict:
-        return super().a_diccionario(excluir)
+        """Agrega banderas utiles para el frontend (tiene logo/sello)."""
+        datos = super().a_diccionario(excluir)
+        datos["tiene_logo"] = bool(self.logo_ruta)
+        datos["tiene_sello"] = bool(self.sello_ruta)
+        datos["tiene_firma"] = bool(self.firma_ruta)
+        return datos
 
 
 class ParametroSistema(ModeloBase):

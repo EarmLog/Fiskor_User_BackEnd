@@ -271,25 +271,81 @@ def anular(venta_id: int):
     return exito(None, "Venta anulada")
 
 
-@ventas_bp.route("/<int:venta_id>/word", methods=["GET"])
-@requiere_sesion
-def exportar_word(venta_id: int):
-    """Genera la factura en Word."""
+def _datos_documento(venta: Venta) -> tuple[dict, dict, list[dict], dict]:
+    """Prepara (empresa, venta, detalles, plantilla) para los documentos."""
+    from app.models.documentos import PlantillaDocumento
     from app.models.empresa import Empresa
-    from app.services import export_service
 
-    venta = Venta.query.get(venta_id)
-    if venta is None:
-        return error("Venta no encontrada", 404)
     empresa = Empresa.query.get(venta.empresa_id)
     empresa_datos = empresa.a_diccionario() if empresa else {"nombre": "Fiskor ERP"}
     venta_datos = venta.a_diccionario()
     venta_datos["cliente_nombre"] = venta.cliente.nombre if venta.cliente else "Consumidor final"
     venta_datos["cliente_rif"] = venta.cliente.rif if venta.cliente else ""
-    ruta = export_service.generar_factura_word(
-        empresa_datos, venta_datos, [d.a_diccionario() for d in venta.detalles]
+    venta_datos["pagos"] = [p.a_diccionario() for p in venta.pagos]
+    detalles = [d.a_diccionario() for d in venta.detalles]
+    plantilla = PlantillaDocumento.obtener_para(venta.empresa_id, venta.tipo)
+    return empresa_datos, venta_datos, detalles, (plantilla.a_diccionario() if plantilla else {})
+
+
+@ventas_bp.route("/<int:venta_id>/pdf", methods=["GET"])
+@requiere_sesion
+def exportar_pdf(venta_id: int):
+    """Genera la factura/nota de entrega en PDF (con logo y sello)."""
+    from pathlib import Path
+
+    from app.services import export_service
+
+    venta = Venta.query.get(venta_id)
+    if venta is None:
+        return error("Venta no encontrada", 404)
+
+    empresa_datos, venta_datos, detalles, plantilla = _datos_documento(venta)
+    try:
+        ruta = export_service.generar_factura_pdf(empresa_datos, venta_datos, detalles, plantilla)
+    except Exception:
+        return error("No se pudo generar el documento PDF", 500)
+    return exito(
+        {"archivo": ruta, "categoria": "pdf", "nombre": Path(ruta).name}, "Documento generado"
     )
-    return exito({"archivo": ruta}, "Documento generado")
+
+
+@ventas_bp.route("/<int:venta_id>/word", methods=["GET"])
+@requiere_sesion
+def exportar_word(venta_id: int):
+    """Genera la factura en Word (editable)."""
+    from pathlib import Path
+
+    from app.services import export_service
+
+    venta = Venta.query.get(venta_id)
+    if venta is None:
+        return error("Venta no encontrada", 404)
+    empresa_datos, venta_datos, detalles, _ = _datos_documento(venta)
+    ruta = export_service.generar_factura_word(empresa_datos, venta_datos, detalles)
+    return exito(
+        {"archivo": ruta, "categoria": "word", "nombre": Path(ruta).name}, "Documento generado"
+    )
+
+
+@ventas_bp.route("/<int:venta_id>/fiscal", methods=["POST"])
+@requiere_sesion
+def imprimir_fiscal(venta_id: int):
+    """Envia la venta a la impresora fiscal (SENIAT)."""
+    from app.services import impresora_fiscal_service
+
+    venta = Venta.query.get(venta_id)
+    if venta is None:
+        return error("Venta no encontrada", 404)
+    if venta.estado != "emitida":
+        return error("Solo se pueden imprimir fiscalmente ventas emitidas", 400)
+
+    empresa_datos, venta_datos, detalles, _ = _datos_documento(venta)
+    resultado = impresora_fiscal_service.imprimir_venta(
+        empresa_datos, venta_datos, detalles, usuario=usuario_actual()["email"]
+    )
+    if not resultado.get("exito"):
+        return error(resultado.get("mensaje", "Fallo la impresion fiscal"), 502, resultado)
+    return exito(resultado, resultado.get("mensaje", "Documento fiscal emitido"))
 
 
 # ------------------------------------------------------------

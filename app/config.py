@@ -35,6 +35,11 @@ class Configuracion:
     RUTA_RESPALDOS = RUTA_BACKEND / "respaldos"
     RUTA_LOGS = RUTA_BACKEND / "logs"
     RUTA_EXPORTADOS = RUTA_BACKEND / "exportados"
+    # Carpeta donde se guardan las imagenes corporativas (logos, sellos,
+    # firmas) y cualquier archivo subido por el usuario.
+    RUTA_UPLOADS = RUTA_BACKEND / "app" / "static" / "uploads"
+    # Tamano maximo de archivo permitido al subir (16 MB).
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
     # --- Base de datos local del ERP (SQLite) ---
     RUTA_SQLITE = _obtener("FISKOR_SQLITE_RUTA") or str(RUTA_INSTANCIA / "fiskor.db")
@@ -88,6 +93,53 @@ class Configuracion:
         "http://127.0.0.1:5173",
         "http://localhost:4173",
     ]
+
+    # --- Registro de usuarios y recuperacion de contrasena ---
+    # URL publica del frontend; se usa para armar los enlaces de correo.
+    URL_FRONTEND = _obtener("FISKOR_URL_FRONTEND", "http://localhost:5173")
+    # Minutos que vive un enlace de recuperacion de contrasena.
+    MINUTOS_TOKEN_RECUPERACION = int(_obtener("FISKOR_MINUTOS_TOKEN", "60"))
+    # Si es "true", los registros nuevos deben ser aprobados por un admin.
+    REGISTRO_REQUIERE_APROBACION = _obtener("FISKOR_REGISTRO_APROBACION", "true").lower() in (
+        "1",
+        "true",
+        "si",
+        "yes",
+    )
+
+    # --- Correo saliente (SMTP) ---
+    # Si no se configura, el sistema NO falla: registra el mensaje en los
+    # logs y (solo en desarrollo) devuelve el enlace al frontend.
+    SMTP_HOST = _obtener("FISKOR_SMTP_HOST")
+    SMTP_PORT = int(_obtener("FISKOR_SMTP_PORT", "587"))
+    SMTP_USUARIO = _obtener("FISKOR_SMTP_USUARIO")
+    SMTP_CLAVE = _obtener("FISKOR_SMTP_CLAVE")
+    SMTP_USAR_TLS = _obtener("FISKOR_SMTP_TLS", "true").lower() in ("1", "true", "si", "yes")
+    CORREO_REMITENTE = _obtener("FISKOR_CORREO_REMITENTE", "Fiskor ERP <no-responder@fiskor.local>")
+    CORREO_NOMBRE = _obtener("FISKOR_CORREO_NOMBRE", "Fiskor ERP")
+
+    @classmethod
+    def correo_configurado(cls) -> bool:
+        """Indica si hay un servidor SMTP listo para enviar correos."""
+        return bool(cls.SMTP_HOST)
+
+    # --- Capa fiscal: impresoras fiscales (SENIAT) ---
+    # Puerto serie/USB donde esta conectada la impresora fiscal.
+    #   Linux:  /dev/ttyUSB0, /dev/ttyS0
+    #   Windows: COM3, COM4
+    IMPRESORA_PUERTO = _obtener("FISKOR_IMPRESORA_PUERTO", "/dev/ttyUSB0")
+    IMPRESORA_BAUDIOS = int(_obtener("FISKOR_IMPRESORA_BAUDIOS", "9600"))
+    IMPRESORA_TIMEOUT = float(_obtener("FISKOR_IMPRESORA_TIMEOUT", "3"))
+    # Protocolo/ marca soportada: HKA, THE_FACTORY, GENERICO.
+    IMPRESORA_PROTOCOLO = _obtener("FISKOR_IMPRESORA_PROTOCOLO", "HKA").upper()
+    # Cuando es "true" no se abre el puerto real: se simula la impresion.
+    # Muy util para probar el flujo sin hardware conectado.
+    IMPRESORA_SIMULAR = _obtener("FISKOR_IMPRESORA_SIMULAR", "true").lower() in (
+        "1",
+        "true",
+        "si",
+        "yes",
+    )
 
 
 class ConfiguracionDesarrollo(Configuracion):
