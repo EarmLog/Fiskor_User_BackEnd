@@ -17,6 +17,7 @@ from app.blueprints.tesoreria import tesoreria_bp
 from app.blueprints.usuarios import usuarios_bp
 from app.blueprints.ventas import ventas_bp
 from app.blueprints.auditoria import auditoria_bp
+from app.blueprints.excel import excel_bp
 
 
 def registrar_blueprints(app) -> None:
@@ -38,6 +39,7 @@ def registrar_blueprints(app) -> None:
         reportes_bp,
         descargas_bp,
         auditoria_bp,
+        excel_bp,
     ]
     for blue_print in blueprints:
         app.register_blueprint(blue_print)

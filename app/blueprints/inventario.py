@@ -11,6 +11,9 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models.inventario import Almacen, Categoria, MovimientoInventario, Producto
 from app.services.auditoria_service import registrar
+from app.services.export_service import exportar_excel
+from app.services.repo_supabase import RepoSB
+from app.services.supabase_client import disponible as sb_disponible
 from app.utils.contexto import empresa_activa_id, parametros_paginacion
 from app.utils.respuestas import error, exito
 from app.utils.seguridad import requiere_sesion, solo_administrador, usuario_actual
@@ -110,8 +113,14 @@ def listar_productos():
     datos = []
     for producto in productos:
         item = producto.a_diccionario()
-        item["alerta_stock"] = producto.alerta_stock
-        item["categoria_nombre"] = producto.categoria.nombre if producto.categoria else ""
+        try:
+            item["alerta_stock"] = producto.alerta_stock
+        except Exception:
+            pass
+        try:
+            item["categoria_nombre"] = producto.categoria.nombre if producto.categoria else ""
+        except Exception:
+            pass
         datos.append(item)
     return exito({"items": datos, "total": total, "pagina": pagina, "por_pagina": por_pagina}, "Productos")
 
