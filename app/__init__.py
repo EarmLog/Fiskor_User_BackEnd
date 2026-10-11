@@ -8,8 +8,9 @@
 # ============================================================
 import logging
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from sqlalchemy import text
@@ -130,6 +131,38 @@ def _registrar_callbacks_jwt() -> None:
         return {"exito": False, "datos": None, "mensaje": "La sesion expiro, vuelva a entrar"}, 401
 
 
+def _servir_frontend(app: Flask) -> None:
+    """Sirve la app compilada del frontend (FrontEnd/dist) desde Flask.
+
+    Asi, al abrir la raiz o una ruta interna (por ejemplo /registro)
+    estando en el backend, se entrega el index.html y React Router se
+    encarga del resto. Si la carpeta no existe (modo desarrollo con
+    Vite), no se registra nada y todo sigue igual.
+    """
+    dist = Path(Configuracion.RUTA_FRONTEND_DIST)
+    indice = dist / "index.html"
+    if not indice.is_file():
+        return
+
+    @app.route("/")
+    def _frontend_raiz():
+        return send_from_directory(dist, "index.html")
+
+    @app.route("/<path:ruta>")
+    def _frontend_spa(ruta: str):
+        # Las rutas de la API ya tienen prioridad; aqui solo queda lo demas.
+        if ruta.startswith("api/"):
+            return {"exito": False, "datos": None, "mensaje": "Recurso no encontrado"}, 404
+        # Si piden un archivo real (assets, favicon...), lo devolvemos.
+        candidato = dist / ruta
+        if candidato.is_file():
+            return send_from_directory(dist, ruta)
+        # Cualquier otra ruta del SPA entrega el index y React decide.
+        return send_from_directory(dist, "index.html")
+
+    app.logger.info("Sirviendo el frontend compilado desde %s", dist)
+
+
 def crear_aplicacion() -> Flask:
     """Construye y configura la aplicacion Flask completa."""
     _preparar_carpetas()
@@ -176,6 +209,9 @@ def crear_aplicacion() -> Flask:
     @app.route("/api/salud")
     def salud():
         return {"exito": True, "datos": {"estado": "ok", "app": "Fiskor ERP"}, "mensaje": "Servidor activo"}
+
+    # Servimos la interfaz compilada (si existe) y sus rutas del SPA.
+    _servir_frontend(app)
 
     # Sembramos los datos iniciales (admin, empresa demo, parametros).
     from app.seed import sembrar_datos_iniciales

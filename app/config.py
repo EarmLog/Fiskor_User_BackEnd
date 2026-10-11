@@ -40,6 +40,12 @@ class Configuracion:
     RUTA_UPLOADS = RUTA_BACKEND / "app" / "static" / "uploads"
     # Tamano maximo de archivo permitido al subir (16 MB).
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+    # Carpeta con la app compilada del frontend (FrontEnd/dist). Si existe,
+    # Flask tambien sirve la interfaz y las rutas del SPA (registro, login...).
+    # Se puede sobreescribir con FISKOR_FRONTEND_DIST.
+    RUTA_FRONTEND_DIST = Path(
+        _obtener("FISKOR_FRONTEND_DIST", str(RUTA_BACKEND.parent / "FrontEnd" / "dist"))
+    )
 
     # --- Base de datos local del ERP (SQLite) ---
     RUTA_SQLITE = _obtener("FISKOR_SQLITE_RUTA") or str(RUTA_INSTANCIA / "fiskor.db")
