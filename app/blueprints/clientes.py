@@ -7,9 +7,11 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models.terceros import Cliente
 from app.services.auditoria_service import registrar
+from app.services.repo_supabase import RepoSB
+from app.services.supabase_client import disponible as sb_disponible
 from app.utils.contexto import empresa_activa_id, parametros_paginacion
 from app.utils.respuestas import error, exito
-from app.utils.seguridad import requiere_sesion, usuario_actual
+from app.utils.seguridad import requiere_sesion, solo_administrador, usuario_actual
 from app.utils.validaciones import limpiar_texto, normalizar_rif, validar_rif
 
 clientes_bp = Blueprint("clientes", __name__, url_prefix="/api/clientes")
@@ -18,13 +20,36 @@ clientes_bp = Blueprint("clientes", __name__, url_prefix="/api/clientes")
 @clientes_bp.route("", methods=["GET"])
 @requiere_sesion
 def listar():
+    try:
+        empresa_id = empresa_activa_id()
+        if sb_disponible():
+            repo = RepoSB("clientes")
+            filas = repo.listar(empresa_id=empresa_id)
+            busqueda = (request.args.get("buscar") or "").strip()
+            if busqueda:
+                b = busqueda.lower()
+                filas = [
+                    f
+                    for f in filas
+                    if b in (f.get("nombre") or "").lower()
+                    or b in (f.get("rif") or "").lower()
+                    or b in (str(f.get("telefono") or "")).lower()
+                ]
+            pagina, por_pagina = parametros_paginacion()
+            total = len(filas)
+            start = (pagina - 1) * por_pagina
+            end = start + por_pagina
+            return exito({"items": filas[start:end], "total": total}, "Clientes")
+    except Exception:
+        pass
+
     empresa_id = empresa_activa_id()
     busqueda = (request.args.get("buscar") or "").strip()
     pagina, por_pagina = parametros_paginacion()
     consulta = Cliente.query.filter_by(empresa_id=empresa_id)
     if busqueda:
         patron = f"%{busqueda}%"
-        consulta = consulta.filter(or_(Cliente.nombre.ilike(patron), Cliente.rif.ilike(patron)))
+        consulta = consulta.filter(or_(Cliente.nombre.ilike(patron), Cliente.rif.ilike(patron), Cliente.telefono.ilike(patron)))
     total = consulta.count()
     clientes = consulta.order_by(Cliente.nombre).offset((pagina - 1) * por_pagina).limit(por_pagina).all()
     return exito({"items": [c.a_diccionario() for c in clientes], "total": total}, "Clientes")

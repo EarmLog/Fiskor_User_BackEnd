@@ -42,7 +42,7 @@ def exportar(tabla: str):
             "productos": ["id", "codigo", "nombre", "precio_usd", "precio_bolivares", "stock_actual", "stock_minimo", "categoria_id", "empresa_id"],
             "clientes": ["id", "rif", "nombre", "telefono", "direccion", "email", "empresa_id", "saldo_pendiente"],
             "ventas": ["id", "numero_factura", "fecha", "cliente_id", "estado", "subtotal", "iva", "total", "total_bolivares", "empresa_id"],
-            "facturas": ["id", "numero", "cliente_id", "items", "total_usd", "tasa_bcv", "fecha", "empresa_id"],
+            "facturas": ["id", "numero", "cliente_id", "items", "total_usd", "tasa_bcv", "fecha", "empresa_id", "empresa_id"],
         }
         ruta = exportar_lista(filas, columnas_map.get(tabla), f"{tabla}_export")
         return exito({"archivo": Path(ruta).name, "ruta": ruta}, "Exportado a Excel")
