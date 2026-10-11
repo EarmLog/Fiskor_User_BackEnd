@@ -6,6 +6,7 @@
 # ============================================================
 import logging
 
+from app.config import Configuracion
 from app.extensions import db
 from app.models.empresa import Empresa, ParametroSistema
 from app.models.inventario import Almacen
@@ -24,6 +25,9 @@ def _crear_empresa_demo() -> Empresa:
     inicio, cierre = periodo_ejercicio(anio)
     empresa = Empresa(
         codigo="0001",
+        # La empresa demo pertenece al administrador para que sea la unica
+        # que vea; los demas usuarios tendran su propio negocio.
+        propietario_email=(Configuracion.ADMIN_EMAIL or "").strip().lower(),
         nombre="Fiskor Demo, C.A.",
         nombre_fiscal="Fiskor Demo, Compania Anonima",
         rif="J-12345678-9",
@@ -120,6 +124,10 @@ def sembrar_datos_iniciales(app) -> None:
         empresa = Empresa.query.order_by(Empresa.id).first()
         if empresa is None:
             empresa = _crear_empresa_demo()
+        elif not (empresa.propietario_email or "").strip():
+            # Empresa heredada sin dueño: se la asignamos al administrador.
+            empresa.propietario_email = (Configuracion.ADMIN_EMAIL or "").strip().lower()
+            db.session.commit()
         _crear_almacen(empresa.id)
         _crear_catalogos(empresa.id)
         _crear_parametros()

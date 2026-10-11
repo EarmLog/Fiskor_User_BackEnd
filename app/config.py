@@ -147,6 +147,10 @@ class Configuracion:
         "yes",
     )
 
+    # --- Respaldos en Google Drive (Cuenta de servicio) ---
+    GDRIVE_CREDENCIALES = _obtener("FISKOR_GDRIVE_CREDENCIALES")
+    GDRIVE_CARPETA_ID = _obtener("FISKOR_GDRIVE_CARPETA")
+
 
 class ConfiguracionDesarrollo(Configuracion):
     DEBUG = True

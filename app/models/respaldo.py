@@ -17,3 +17,7 @@ class Respaldo(ModeloBase):
     tamano_bytes = db.Column(db.Integer, default=0)
     generado_por = db.Column(db.String(150), default="")
     nota = db.Column(db.String(200), default="")
+    # Google Drive
+    drive_id = db.Column(db.String(120), default="")
+    drive_link = db.Column(db.String(255), default="")
+    drive_subido = db.Column(db.Boolean, default=False)

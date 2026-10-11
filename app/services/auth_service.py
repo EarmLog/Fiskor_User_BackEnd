@@ -18,7 +18,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.config import Configuracion
 from app.extensions import db
 from app.models.seguridad import SolicitudRegistro, TokenRecuperacion, UsuarioCache
-from app.services import email_service, supabase_db
+from app.services import email_service, empresa_service, supabase_db
 from app.utils.seguridad import ROL_ADMINISTRADOR
 
 registro = logging.getLogger("fiskor")
@@ -356,6 +356,11 @@ def registrar_usuario(datos: dict, revisado_por: str = "auto-registro") -> dict:
             "password_hash": usuario["password_hash"],
         }
     )
+    # Le creamos su propio negocio vacio para que empiece sin datos ajenos.
+    try:
+        empresa_service.asegurar_empresa_usuario(email, usuario["nombre"])
+    except Exception as exc:  # pragma: no cover - no debe tumbar el registro
+        registro.warning("No se pudo crear la empresa del usuario %s: %s", email, exc)
     return creado
 
 
@@ -429,6 +434,11 @@ def aprobar_solicitud(solicitud_id: int, datos: dict, revisado_por: str) -> dict
     solicitud.revisado_por = revisado_por
     solicitud.revisado_en = datetime.utcnow()
     db.session.commit()
+    # Le creamos su propio negocio vacio al usuario aprobado.
+    try:
+        empresa_service.asegurar_empresa_usuario(solicitud.email, usuario["nombre"])
+    except Exception as exc:  # pragma: no cover - no debe tumbar la aprobacion
+        registro.warning("No se pudo crear la empresa del usuario %s: %s", solicitud.email, exc)
     return creado
 
 

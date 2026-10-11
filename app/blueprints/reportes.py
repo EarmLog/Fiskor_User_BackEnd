@@ -16,6 +16,7 @@ from app.models.terceros import Cliente, Proveedor
 from app.models.ventas import CuentaPorCobrar, Venta
 from app.services import bcv_service
 from app.services.auditoria_service import registrar
+from app.services.google.drive_service import drive_service, DriveError
 from app.utils.contexto import empresa_activa_id
 from app.utils.fechas import a_fecha
 from app.utils.respuestas import error, exito
@@ -211,6 +212,22 @@ def crear_respaldo():
             nota="Respaldo manual",
         )
         db.session.add(respaldo)
+        db.session.flush()  # para obtener id antes de commit completo
+
+        # Subida opcional a Google Drive si esta configurado.
+        if drive_service.disponible():
+            try:
+                subida = drive_service.subir_respaldo(str(ruta), nombre, "Respaldo manual Fiskor ERP")
+                respaldo.drive_id = subida.get("id", "")
+                respaldo.drive_link = subida.get("webViewLink", "")
+                respaldo.drive_subido = True
+                registrar("subir", "reportes", "respaldos", respaldo.id, "Subido a Google Drive",
+                          usuario=usuario_actual()["email"], ip=request.remote_addr)
+            except DriveError as exc:
+                registro.warning("No se pudo subir el respaldo a Google Drive: %s", exc)
+            except Exception as exc:
+                registro.warning("Error inesperado al subir respaldo a Drive: %s", exc)
+
         db.session.commit()
     except Exception:
         db.session.rollback()

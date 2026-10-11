@@ -14,6 +14,9 @@ class Empresa(ModeloBase):
 
     id = db.Column(db.Integer, primary_key=True)
     codigo = db.Column(db.String(10), unique=True, nullable=False)
+    # Correo del usuario dueño del negocio. Sirve para que cada usuario
+    # vea SOLO su propia informacion (aislamiento por usuario).
+    propietario_email = db.Column(db.String(150), default="", index=True)
     nombre = db.Column(db.String(120), nullable=False)
     nombre_fiscal = db.Column(db.String(180), default="")
     rif = db.Column(db.String(20), default="")

@@ -14,9 +14,15 @@ from app.config import Configuracion
 from app.extensions import db
 from app.models.empresa import Empresa, ParametroSistema
 from app.services.auditoria_service import registrar
+from app.utils.contexto import empresa_activa_id
 from app.utils.fechas import a_fecha, periodo_ejercicio
 from app.utils.respuestas import error, exito
-from app.utils.seguridad import requiere_sesion, solo_administrador, usuario_actual
+from app.utils.seguridad import (
+    ROL_ADMINISTRADOR,
+    requiere_sesion,
+    solo_administrador,
+    usuario_actual,
+)
 from app.utils.validaciones import limpiar_texto, normalizar_rif, validar_rif
 
 empresa_bp = Blueprint("empresa", __name__, url_prefix="/api/empresa")
@@ -74,19 +80,38 @@ def _borrar_imagen(ruta_relativa: str) -> None:
         pass
 
 
+def _puede_gestionar(empresa: Empresa) -> bool:
+    """True si el usuario puede editar la empresa (admin o su dueño)."""
+    usuario = usuario_actual()
+    if usuario.get("rol") == ROL_ADMINISTRADOR:
+        return True
+    correo = (usuario.get("email") or "").strip().lower()
+    return (empresa.propietario_email or "").strip().lower() == correo
+
+
 @empresa_bp.route("", methods=["GET"])
 @requiere_sesion
 def listar():
-    """Lista las empresas registradas."""
-    empresas = Empresa.query.order_by(Empresa.codigo).all()
+    """Lista las empresas del usuario (el admin ve todas)."""
+    usuario = usuario_actual()
+    if usuario.get("rol") == ROL_ADMINISTRADOR:
+        empresas = Empresa.query.order_by(Empresa.codigo).all()
+    else:
+        correo = (usuario.get("email") or "").strip().lower()
+        empresas = (
+            Empresa.query.filter(db.func.lower(Empresa.propietario_email) == correo)
+            .order_by(Empresa.codigo)
+            .all()
+        )
     return exito([empresa.a_diccionario() for empresa in empresas], "Empresas registradas")
 
 
 @empresa_bp.route("/actual", methods=["GET"])
 @requiere_sesion
 def actual():
-    """Devuelve la empresa activa (la primera activa o la primera)."""
-    empresa = Empresa.query.filter_by(activa=True).order_by(Empresa.id).first()
+    """Devuelve la empresa del usuario conectado (su propio negocio)."""
+    empresa_id = empresa_activa_id()
+    empresa = Empresa.query.get(empresa_id) if empresa_id else None
     if empresa is None:
         empresa = Empresa.query.order_by(Empresa.id).first()
     if empresa is None:
@@ -127,6 +152,8 @@ def crear():
 
     empresa = Empresa(
         codigo=codigo,
+        # El negocio queda a nombre del usuario que lo crea.
+        propietario_email=(datos.get("propietario_email") or usuario_actual()["email"] or "").strip().lower(),
         nombre=nombre,
         nombre_fiscal=limpiar_texto(datos.get("nombre_fiscal"), 180),
         rif=rif,
@@ -149,12 +176,14 @@ def crear():
 
 
 @empresa_bp.route("/<int:empresa_id>", methods=["PUT"])
-@solo_administrador
+@requiere_sesion
 def actualizar(empresa_id: int):
     """Actualiza los datos de una empresa."""
     empresa = Empresa.query.get(empresa_id)
     if empresa is None:
         return error("Empresa no encontrada", 404)
+    if not _puede_gestionar(empresa):
+        return error("No tiene permisos para modificar esta empresa", 403)
     datos = request.get_json(silent=True) or {}
 
     if "nombre" in datos:
@@ -204,7 +233,7 @@ def actualizar(empresa_id: int):
 # Imagen corporativa: logo, sello digital y firma autorizada
 # ------------------------------------------------------------
 @empresa_bp.route("/<int:empresa_id>/imagenes/<string:tipo>", methods=["POST"])
-@solo_administrador
+@requiere_sesion
 def subir_imagen(empresa_id: int, tipo: str):
     """Sube (o reemplaza) el logo, sello o firma de la empresa.
 
@@ -217,6 +246,8 @@ def subir_imagen(empresa_id: int, tipo: str):
     empresa = Empresa.query.get(empresa_id)
     if empresa is None:
         return error("Empresa no encontrada", 404)
+    if not _puede_gestionar(empresa):
+        return error("No tiene permisos para modificar esta empresa", 403)
 
     archivo = request.files.get("archivo")
     if archivo is None:
@@ -242,7 +273,7 @@ def subir_imagen(empresa_id: int, tipo: str):
 
 
 @empresa_bp.route("/<int:empresa_id>/imagenes/<string:tipo>", methods=["DELETE"])
-@solo_administrador
+@requiere_sesion
 def borrar_imagen(empresa_id: int, tipo: str):
     """Quita el logo, sello o firma de la empresa."""
     if tipo not in TIPOS_IMAGEN:
@@ -250,6 +281,8 @@ def borrar_imagen(empresa_id: int, tipo: str):
     empresa = Empresa.query.get(empresa_id)
     if empresa is None:
         return error("Empresa no encontrada", 404)
+    if not _puede_gestionar(empresa):
+        return error("No tiene permisos para modificar esta empresa", 403)
 
     _, campo = TIPOS_IMAGEN[tipo]
     _borrar_imagen(getattr(empresa, campo))
